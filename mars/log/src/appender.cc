@@ -398,7 +398,9 @@ std::string XloggerAppender::__MakeLogFileNamePrefix(const timeval& _tv, const c
     tm tcur = *localtime((const time_t*)&sec);
     
     char temp [64] = {0};
-    snprintf(temp, 64, "_%d%02d%02d", 1900 + tcur.tm_year, 1 + tcur.tm_mon, tcur.tm_mday);
+    //UQ add hhmm
+    //snprintf(temp, 64, "_%d%02d%02d", 1900 + tcur.tm_year, 1 + tcur.tm_mon, tcur.tm_mday);
+    snprintf(temp, 64, "_%d%02d%02d-%02d%02d", 1900 + tcur.tm_year, 1 + tcur.tm_mon, tcur.tm_mday, tcur.tm_hour, tcur.tm_min);
     
     std::string filenameprefix = _prefix;
     filenameprefix += temp;
