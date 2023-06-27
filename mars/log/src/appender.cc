@@ -166,6 +166,9 @@ void XloggerAppender::Write(const XLoggerInfo* _info, const char* _log) {
 
     SCOPE_ERRNO();
 
+    //UQ set loggerInfo always null
+    _info = NULL;
+
     thread_local uint32_t recursion_count = 0;
     thread_local std::string recursion_str;
     recursion_count++;
@@ -357,10 +360,11 @@ void XloggerAppender::Open(const XLogConfig& _config) {
     char mark_info[512] = {0};
     __GetMarkInfo(mark_info, sizeof(mark_info));
 
+    //UQ remove head msg
     if (buffer.Ptr()) {
-        WriteTips2File("~~~~~ begin of mmap ~~~~~\n");
+        //WriteTips2File("~~~~~ begin of mmap ~~~~~\n");
         __Log2File(buffer.Ptr(), buffer.Length(), false);
-        WriteTips2File("~~~~~ end of mmap ~~~~~%s\n", mark_info);
+        //WriteTips2File("~~~~~ end of mmap ~~~~~%s\n", mark_info);
     }
 
     tickcountdiff_t get_mmap_time = tickcount_t().gettickcount() - tick;
@@ -373,11 +377,12 @@ void XloggerAppender::Open(const XLogConfig& _config) {
     snprintf(logmsg, sizeof(logmsg), "get mmap time: %" PRIu64, (int64_t)get_mmap_time);
     Write(nullptr, logmsg);
 
-    Write(nullptr, "MARS_URL: " MARS_URL);
-    Write(nullptr, "MARS_PATH: " MARS_PATH);
-    Write(nullptr, "MARS_REVISION: " MARS_REVISION);
-    Write(nullptr, "MARS_BUILD_TIME: " MARS_BUILD_TIME);
-    Write(nullptr, "MARS_BUILD_JOB: " MARS_TAG);
+    //UQ remove head msg
+    // Write(nullptr, "MARS_URL: " MARS_URL);
+    // Write(nullptr, "MARS_PATH: " MARS_PATH);
+    // Write(nullptr, "MARS_REVISION: " MARS_REVISION);
+    // Write(nullptr, "MARS_BUILD_TIME: " MARS_BUILD_TIME);
+    // Write(nullptr, "MARS_BUILD_JOB: " MARS_TAG);
 
     snprintf(logmsg, sizeof(logmsg), "log appender mode:%d, use mmap:%d", (int)config_.mode_, use_mmap);
     Write(nullptr, logmsg);
@@ -711,9 +716,17 @@ bool XloggerAppender::__OpenLogFile(const std::string& _log_dir) {
         tm tcur = *localtime((const time_t*)&sec);
         tm filetm = *localtime(&openfiletime_);
 
+        //UQ add file size check
+        // if (filetm.tm_year == tcur.tm_year 
+        //     && filetm.tm_mon == tcur.tm_mon
+        //     && filetm.tm_mday == tcur.tm_mday) {
+        //     return true;
+        // }
+        unsigned long before_len = ftell(logfile_);
         if (filetm.tm_year == tcur.tm_year 
             && filetm.tm_mon == tcur.tm_mon
-            && filetm.tm_mday == tcur.tm_mday) {
+            && filetm.tm_mday == tcur.tm_mday
+            && (max_file_size_ == 0 || before_len < max_file_size_)) {
             return true;
         }
 
@@ -919,10 +932,12 @@ void XloggerAppender::__WriteSync(const XLoggerInfo* _info, const char* _log) {
     PtrBuffer log(temp, 0, sizeof(temp));
     log_formater(_info, _log, log);
 
-    AutoBuffer tmp_buff;
-    if (!log_buff_->Write(log.Ptr(), log.Length(), tmp_buff))   return;
+    //UQ remove compress
+    // AutoBuffer tmp_buff;
+    // if (!log_buff_->Write(log.Ptr(), log.Length(), tmp_buff))   return;  
 
-    __Log2File(tmp_buff.Ptr(), tmp_buff.Length(), false);
+    //__Log2File(tmp_buff.Ptr(), tmp_buff.Length(), false);
+    __Log2File(log.Ptr(), log.Length(), false);
 }
 
 
